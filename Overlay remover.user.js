@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Overlay remover
 // @namespace    https://kawamoto.no-ip.org/
-// @version      1.0
+// @version      1.1
 // @description  Just removes/hides overlay elements by Crtl+Shift+X/Z.
 // @author       Suguru Kawamoto
 // @include      *
@@ -14,23 +14,31 @@
     'use strict';
 
     // Your code here...
-    let f = function(d, z, h){
-        Array.prototype.forEach.call(d.children, function(c){
-            f(c, z, h);
-        });
-        let s = getComputedStyle(d);
-        if(s.display != "none" && s.visibility != "hidden" && s.zIndex > z){
-            h(d);
+    let f = function(d){
+        while(d != document.body && getComputedStyle(d).zIndex == "auto" && d.parentNode){
+            d = d.parentNode;
         }
+        return d;
+    };
+    let g = function(d, z, c){
+        Array.prototype.forEach.call(d.children, function(e){
+            let s = getComputedStyle(e);
+            if(s.zIndex == "auto"){
+                g(e, z, c);
+            }
+            if(s.display != "none" && s.visibility != "hidden" && s.position != "relative" && s.zIndex >= z){
+                c(e);
+            }
+        });
+    };
+    let h = function(c){
+        let p = f(document.elementFromPoint(0, 0));
+        let z = parseInt(getComputedStyle(p).zIndex);
+        g(f(p != document.body ? p.parentNode : p), z >= 0 ? z : 0, c);
     };
     document.addEventListener("keydown", function(e){
         if(e.ctrlKey && e.shiftKey && e.code == "KeyX"){
-            let p = document.elementFromPoint(0, 0);
-            let z = parseInt(getComputedStyle(p).zIndex);
-            if(z > 0 && p.parentNode){
-                p.parentNode.removeChild(p);
-            }
-            f(document.body, z > 0 ? z : 0, function(d){
+            h(function(d){
                 if(d.parentNode){
                     d.parentNode.removeChild(d);
                 }
@@ -38,12 +46,7 @@
             e.preventDefault();
         }
         if(e.ctrlKey && e.shiftKey && e.code == "KeyZ"){
-            let p = document.elementFromPoint(0, 0);
-            let z = parseInt(getComputedStyle(p).zIndex);
-            if(z > 0){
-                p.style.display = "none";
-            }
-            f(document.body, z > 0 ? z : 0, function(d){
+            h(function(d){
                 d.style.display = "none";
             });
             e.preventDefault();
